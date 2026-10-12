@@ -6,9 +6,7 @@
     <title>Sistema Perfumería Kanam</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
-        /* Estilos exclusivos para la Impresión / Guardar en PDF */
         @media print {
-            /* Ocultar la barra de navegación, botones y secciones que no pertenecen a la factura */
             header, 
             .no-print, 
             #buscadorProducto, 
@@ -37,7 +35,6 @@
                 padding: 0 !important;
             }
 
-            /* Convertir selects e inputs en texto plano visible */
             select, input[type="text"], input[type="number"] {
                 border: none !important;
                 background: transparent !important;
@@ -57,7 +54,7 @@
             <h1 class="text-2xl font-bold tracking-wider mb-2 md:mb-0">🌸 Perfumería Kanam</h1>
             <nav class="flex space-x-2 md:space-x-4">
                 <button onclick="cambiarTab('facturacion')" id="btn-facturacion" class="px-3 py-2 rounded bg-indigo-600 font-medium text-sm transition">Factura / Presupuesto</button>
-                <button onclick="cambiarTab('inventario')" id="btn-inventario" class="px-3 py-2 rounded bg-slate-800 hover:bg-slate-700 font-medium text-sm transition">Inventario</button>
+                <button onclick="verificarAccesoInventario()" id="btn-inventario" class="px-3 py-2 rounded bg-slate-800 hover:bg-slate-700 font-medium text-sm transition">Inventario 🔒</button>
                 <button onclick="cambiarTab('reportes')" id="btn-reportes" class="px-3 py-2 rounded bg-slate-800 hover:bg-slate-700 font-medium text-sm transition">Reportes & Ganancias</button>
             </nav>
         </div>
@@ -83,7 +80,6 @@
                     </div>
                 </div>
 
-                <!-- Datos Cliente y Modalidad de Precio -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div>
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Cliente</label>
@@ -102,14 +98,12 @@
                     </div>
                 </div>
 
-                <!-- Buscador inteligente de productos en tiempo real -->
                 <div class="relative mb-6 no-print">
                     <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Buscar Perfume (Coincidencia Automática)</label>
                     <input type="text" id="buscadorProducto" placeholder="Escribe el nombre del perfume..." oninput="filtrarProductos()" class="w-full border rounded-lg px-4 py-2 text-sm shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     <div id="listaSugerencias" class="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-56 overflow-y-auto hidden"></div>
                 </div>
 
-                <!-- Tabla de factura (Ajustable para impresión) -->
                 <div class="overflow-x-auto mb-6">
                     <table class="w-full text-left border-collapse">
                         <thead>
@@ -125,7 +119,6 @@
                     </table>
                 </div>
 
-                <!-- Totales estilo EE.UU. -->
                 <div class="flex justify-end">
                     <div class="w-full md:w-80 space-y-2 text-sm">
                         <div class="flex justify-between py-1 border-b">
@@ -149,17 +142,16 @@
             </div>
         </section>
 
-        <!-- TAB: INVENTARIO -->
+        <!-- TAB: INVENTARIO (PROTEGIDO) -->
         <section id="tab-inventario" class="hidden space-y-6 no-print">
             <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-lg font-bold text-slate-800">Base de Datos de Inventario</h2>
+                    <h2 class="text-lg font-bold text-slate-800">Base de Datos de Inventario 🔒</h2>
                     <button onclick="cargarBaseDatosAutomatico()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold px-3 py-2 rounded transition flex items-center gap-1">
                         🔄 Recargar Base de Datos de GitHub
                     </button>
                 </div>
 
-                <!-- Agregar / Editar Producto Manual -->
                 <form id="formProducto" onsubmit="guardarProducto(event)" class="grid grid-cols-1 md:grid-cols-6 gap-3 mb-6 bg-gray-50 p-4 rounded-lg border">
                     <input type="hidden" id="indiceEditando" value="-1">
                     <div class="md:col-span-2">
@@ -205,7 +197,7 @@
             </div>
         </section>
 
-        <!-- TAB: REPORTES & GANANCIAS -->
+        <!-- TAB: REPORTES & GANANCIAS CON ARCHIVADO -->
         <section id="tab-reportes" class="hidden space-y-6 no-print">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
@@ -217,7 +209,7 @@
                     <p id="kpiGananciaDetal" class="text-2xl font-black text-green-600 mt-2">$0.00</p>
                 </div>
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                    <p class="text-xs font-bold text-gray-500 uppercase">Ventas / Facturas Emitidas</p>
+                    <p class="text-xs font-bold text-gray-500 uppercase">Facturas Activas (No Archivadas)</p>
                     <p id="kpiVentas" class="text-2xl font-black text-indigo-600 mt-2">0</p>
                 </div>
             </div>
@@ -232,6 +224,7 @@
                                 <th class="p-3 border-b">Cliente</th>
                                 <th class="p-3 border-b">Fecha</th>
                                 <th class="p-3 border-b">Total</th>
+                                <th class="p-3 border-b text-center">Estado / Acción</th>
                             </tr>
                         </thead>
                         <tbody id="tablaHistorial" class="text-sm"></tbody>
@@ -249,7 +242,16 @@
 
         document.getElementById('fechaActual').innerText = new Date().toLocaleDateString();
 
-        // Carga Automática de productos.csv desde GitHub
+        // Contraseña para Inventario (Puedes cambiar 'kanam2026' por la clave que quieras)
+        function verificarAccesoInventario() {
+            const password = prompt("Ingresa la contraseña de administrador para ver el Inventario:");
+            if (password === "kanam2026") {
+                cambiarTab('inventario');
+            } else if (password !== null) {
+                alert("Contraseña incorrecta.");
+            }
+        }
+
         async function cargarBaseDatosAutomatico() {
             try {
                 const response = await fetch('productos.csv');
@@ -292,7 +294,11 @@
                 document.getElementById(`btn-${t}`).className = "px-3 py-2 rounded bg-slate-800 hover:bg-slate-700 font-medium text-sm transition";
             });
             document.getElementById(`tab-${tab}`).classList.remove('hidden');
-            document.getElementById(`btn-${tab}`).className = "px-3 py-2 rounded bg-indigo-600 font-medium text-sm transition";
+            if(tab !== 'inventario') {
+                document.getElementById(`btn-${tab}`).className = "px-3 py-2 rounded bg-indigo-600 font-medium text-sm transition";
+            } else {
+                document.getElementById(`btn-inventario`).className = "px-3 py-2 rounded bg-indigo-600 font-medium text-sm transition";
+            }
             if(tab === 'reportes') actualizarReportes();
         }
 
@@ -434,12 +440,20 @@
             const tipo = document.getElementById('tipoDocumento').value;
             const cliente = document.getElementById('nombreCliente').value || 'Cliente General';
 
-            historial.push({ tipo, cliente, fecha: new Date().toLocaleDateString(), total });
+            // Guardamos con estado activo (archivado: false)
+            historial.push({ tipo, cliente, fecha: new Date().toLocaleDateString(), total, archivado: false });
             localStorage.setItem('perf_historial', JSON.stringify(historial));
             
             window.print();
             itemsFacturaActual = [];
             renderFacturaItems();
+        }
+
+        // Alternar estado de archivo de la factura
+        function alternarArchivo(i) {
+            historial[i].archivado = !historial[i].archivado;
+            localStorage.setItem('perf_historial', JSON.stringify(historial));
+            actualizarReportes();
         }
 
         function actualizarReportes() {
@@ -448,17 +462,28 @@
             
             document.getElementById('kpiInversion').innerText = `$${inversion.toFixed(2)}`;
             document.getElementById('kpiGananciaDetal').innerText = `$${gananciaDetal.toFixed(2)}`;
-            document.getElementById('kpiVentas').innerText = historial.length;
+
+            // Solo contamos facturas activas (no archivadas) para las métricas
+            const activas = historial.filter(h => !h.archivado).length;
+            document.getElementById('kpiVentas').innerText = activas;
 
             const tbody = document.getElementById('tablaHistorial');
             tbody.innerHTML = '';
-            historial.forEach(h => {
+            historial.forEach((h, i) => {
+                const estClase = h.archivado ? 'bg-gray-100 text-gray-400 line-through' : 'border-b';
+                const btnTexto = h.archivado ? 'Desarchivar' : 'Archivar';
+                const btnColor = h.archivado ? 'bg-gray-500 hover:bg-gray-600' : 'bg-amber-600 hover:bg-amber-700';
+
                 tbody.innerHTML += `
-                    <tr class="border-b">
-                        <td class="p-3 font-semibold text-indigo-600">${h.tipo}</td>
+                    <tr class="${estClase}">
+                        <td class="p-3 font-semibold">${h.tipo}</td>
                         <td class="p-3">${h.cliente}</td>
                         <td class="p-3">${h.fecha}</td>
                         <td class="p-3 font-bold">$${h.total.toFixed(2)}</td>
+                        <td class="p-3 text-center">
+                            <span class="mr-2 text-xs font-semibold">${h.archivado ? 'Archivada' : 'Activa'}</span>
+                            <button onclick="alternarArchivo(${i})" class="${btnColor} text-white px-3 py-1 rounded text-xs transition">${btnTexto}</button>
+                        </td>
                     </tr>`;
             });
         }
@@ -470,8 +495,6 @@
             }
             reader.readAsDataURL(e.target.files[0]);
         });
-
-        renderInventario();
     </script>
 </body>
 </html>
