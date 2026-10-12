@@ -5,6 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema Perfumería Kanam</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        /* Estilos exclusivos para la Impresión / Guardar en PDF */
+        @media print {
+            /* Ocultar la barra de navegación, botones y secciones que no pertenecen a la factura */
+            header, 
+            .no-print, 
+            #buscadorProducto, 
+            #listaSugerencias, 
+            #logoInput,
+            .btn-accion-tabla {
+                display: none !important;
+            }
+
+            body {
+                background-color: white !important;
+                color: black !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            main {
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            .bg-white {
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+            }
+
+            /* Convertir selects e inputs en texto plano visible */
+            select, input[type="text"], input[type="number"] {
+                border: none !important;
+                background: transparent !important;
+                appearance: none !important;
+                -webkit-appearance: none !important;
+                font-weight: normal !important;
+                padding: 0 !important;
+            }
+        }
+    </style>
 </head>
 <body class="bg-gray-100 font-sans">
 
@@ -27,7 +70,7 @@
             <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                 <div class="flex flex-col md:flex-row justify-between border-b pb-4 mb-4 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Logo de la Empresa</label>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1 no-print">Logo de la Empresa</label>
                         <input type="file" id="logoInput" accept="image/*" class="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 mb-2">
                         <div id="logoContainer" class="mt-2"></div>
                     </div>
@@ -46,27 +89,27 @@
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Cliente</label>
                         <input type="text" id="nombreCliente" placeholder="Nombre del cliente" class="w-full border rounded px-3 py-2 text-sm">
                     </div>
-                    <div>
+                    <div class="no-print">
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Modalidad de Precio</label>
                         <select id="modalidadPrecio" onchange="actualizarPreciosFactura()" class="w-full border rounded px-3 py-2 text-sm bg-gray-50 font-semibold text-indigo-900">
                             <option value="1">Precio 1 (Detal)</option>
                             <option value="2">Precio 2 (Mayor)</option>
                         </select>
                     </div>
-                    <div>
+                    <div class="no-print">
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Tax / Impuesto (%)</label>
                         <input type="number" id="taxPorcentaje" value="0" oninput="calcularTotales()" class="w-full border rounded px-3 py-2 text-sm">
                     </div>
                 </div>
 
                 <!-- Buscador inteligente de productos en tiempo real -->
-                <div class="relative mb-6">
+                <div class="relative mb-6 no-print">
                     <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Buscar Perfume (Coincidencia Automática)</label>
                     <input type="text" id="buscadorProducto" placeholder="Escribe el nombre del perfume..." oninput="filtrarProductos()" class="w-full border rounded-lg px-4 py-2 text-sm shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     <div id="listaSugerencias" class="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-56 overflow-y-auto hidden"></div>
                 </div>
 
-                <!-- Tabla de factura (Ilimitados renglones) -->
+                <!-- Tabla de factura (Ajustable para impresión) -->
                 <div class="overflow-x-auto mb-6">
                     <table class="w-full text-left border-collapse">
                         <thead>
@@ -74,8 +117,8 @@
                                 <th class="p-3 border-b">Descripción del Perfume</th>
                                 <th class="p-3 border-b w-28 text-center">Cantidad</th>
                                 <th class="p-3 border-b w-32">Precio Unit.</th>
-                                <th class="p-3 border-b w-32">Total Linea</th>
-                                <th class="p-3 border-b w-16 text-center">Acción</th>
+                                <th class="p-3 border-b w-32">Total Línea</th>
+                                <th class="p-3 border-b w-16 text-center no-print">Acción</th>
                             </tr>
                         </thead>
                         <tbody id="itemsFactura" class="text-sm"></tbody>
@@ -100,14 +143,14 @@
                     </div>
                 </div>
 
-                <div class="mt-6 flex justify-end gap-3">
+                <div class="mt-6 flex justify-end gap-3 no-print">
                     <button onclick="guardarImprimirFactura()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2 rounded-lg text-sm transition shadow">Guardar e Imprimir / PDF</button>
                 </div>
             </div>
         </section>
 
         <!-- TAB: INVENTARIO -->
-        <section id="tab-inventario" class="hidden space-y-6">
+        <section id="tab-inventario" class="hidden space-y-6 no-print">
             <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-lg font-bold text-slate-800">Base de Datos de Inventario</h2>
@@ -163,7 +206,7 @@
         </section>
 
         <!-- TAB: REPORTES & GANANCIAS -->
-        <section id="tab-reportes" class="hidden space-y-6">
+        <section id="tab-reportes" class="hidden space-y-6 no-print">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                     <p class="text-xs font-bold text-gray-500 uppercase">Inversión Total en Inventario</p>
@@ -239,7 +282,6 @@
             }
         }
 
-        // Si no hay productos guardados, intenta cargarlos del archivo
         if (inventario.length === 0) {
             cargarBaseDatosAutomatico();
         }
@@ -254,7 +296,6 @@
             if(tab === 'reportes') actualizarReportes();
         }
 
-        // Guardar o Editar Producto Manual
         function guardarProducto(e) {
             e.preventDefault();
             const idx = document.getElementById('indiceEditando').value;
@@ -313,7 +354,6 @@
             renderInventario();
         }
 
-        // Buscador Inteligente
         function filtrarProductos() {
             const q = document.getElementById('buscadorProducto').value.toLowerCase();
             const div = document.getElementById('listaSugerencias');
@@ -351,7 +391,7 @@
                         <td class="p-3 text-center"><input type="number" min="1" value="${item.cantidad}" onchange="cambiarCantidad(${i}, this.value)" class="w-16 border rounded px-2 py-1 text-sm text-center"></td>
                         <td class="p-3">$${item.precio.toFixed(2)}</td>
                         <td class="p-3 font-semibold text-slate-800">$${(item.cantidad * item.precio).toFixed(2)}</td>
-                        <td class="p-3 text-center"><button onclick="quitarItem(${i})" class="text-red-600 font-bold px-2">×</button></td>
+                        <td class="p-3 text-center no-print"><button onclick="quitarItem(${i})" class="text-red-600 font-bold px-2">×</button></td>
                     </tr>`;
             });
             calcularTotales();
@@ -402,7 +442,6 @@
             renderFacturaItems();
         }
 
-        // Reportes
         function actualizarReportes() {
             const inversion = inventario.reduce((acc, p) => acc + (p.costo || 0), 0);
             const gananciaDetal = inventario.reduce((acc, p) => acc + ((p.precio1 || 0) - (p.costo || 0)), 0);
@@ -424,7 +463,6 @@
             });
         }
 
-        // Logo
         document.getElementById('logoInput').addEventListener('change', function(e) {
             const reader = new FileReader();
             reader.onload = function(event) {
