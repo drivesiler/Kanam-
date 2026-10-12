@@ -101,8 +101,8 @@
                 </div>
 
                 <div class="relative mb-6 no-print">
-                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Buscar Perfume (Coincidencia Automática)</label>
-                    <input type="text" id="buscadorProducto" placeholder="Escribe el nombre del perfume..." oninput="filtrarProductos()" class="w-full border rounded-lg px-4 py-2 text-sm shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Buscar Perfume por Nombre o Código</label>
+                    <input type="text" id="buscadorProducto" placeholder="Escribe el nombre o código del perfume..." oninput="filtrarProductos()" class="w-full border rounded-lg px-4 py-2 text-sm shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     <div id="listaSugerencias" class="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-56 overflow-y-auto hidden"></div>
                 </div>
 
@@ -155,7 +155,7 @@
                         </p>
                     </div>
                     <button onclick="forzarRecargaCSV()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded transition shadow flex items-center gap-2">
-                        🔄 Forzar Sincronización con GitHub
+                        🔄 Sincronizar con GitHub
                     </button>
                 </div>
 
@@ -189,8 +189,8 @@
                 <!-- BUSCADOR Y FILTROS EN INVENTARIO -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
-                        <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Filtrar Inventario (Nombre, Marca, Precio...)</label>
-                        <input type="text" id="buscadorInventario" placeholder="Escribe para buscar..." oninput="renderInventario()" class="w-full border rounded-lg px-4 py-2 text-sm shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Filtrar Inventario (Código, Nombre, Marca, Precio)</label>
+                        <input type="text" id="buscadorInventario" placeholder="Escribe código, nombre o marca..." oninput="renderInventario()" class="w-full border rounded-lg px-4 py-2 text-sm shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Ordenar por</label>
@@ -208,7 +208,7 @@
                     <table class="w-full text-left border-collapse">
                         <thead class="sticky top-0 bg-gray-200 text-gray-700 text-xs uppercase z-10">
                             <tr>
-                                <th class="p-3 border-b">Descripción</th>
+                                <th class="p-3 border-b">Descripción (Con Código)</th>
                                 <th class="p-3 border-b">Categoría / Marca</th>
                                 <th class="p-3 border-b">Costo Inversión</th>
                                 <th class="p-3 border-b">Precio 1 (Detal)</th>
@@ -291,15 +291,21 @@
                         const cols = linea.split(',').map(c => c.replace(/^"|"$/g, '').trim());
                         
                         if (cols.length >= 5) {
-                            let nombre = cols[0];
+                            let nombreRaw = cols[0];
                             let categoria = cols[1];
                             let costo = parseFloat(cols[2]) || 0;
                             let precio1 = parseFloat(cols[3]) || 0;
                             let precio2 = parseFloat(cols[4]) || 0;
 
-                            if (nombre && nombre.toLowerCase() !== 'nombre') {
+                            // Asignar código incremental automático (ej: 100001, 100002...) basado en la posición en el CSV
+                            let codigoStr = (100000 + i).toString();
+                            let nombreConCodigo = `${nombreRaw} (${codigoStr})`;
+
+                            if (nombreRaw && nombreRaw.toLowerCase() !== 'nombre') {
                                 tempInventario.push({
-                                    nombre: nombre,
+                                    nombre: nombreConCodigo,
+                                    nombrePuro: nombreRaw,
+                                    codigo: codigoStr,
                                     categoria: categoria || 'General',
                                     costo: costo,
                                     precio1: precio1,
@@ -311,7 +317,6 @@
 
                     if (tempInventario.length > 0) {
                         inventario = tempInventario;
-                        // Borra memoria vieja para evitar que aparezcan 648 de forma fantasma
                         localStorage.removeItem('perf_inventario');
                         renderInventario();
                         if (forzar) alert(`¡Sincronizado! Total exacto de artículos: ${inventario.length}`);
@@ -323,7 +328,7 @@
         }
 
         function forzarRecargaCSV() {
-            localStorage.clear(); // Limpia cualquier caché residual
+            localStorage.clear();
             cargarBaseDatos(true);
         }
 
@@ -347,12 +352,23 @@
         function guardarProducto(e) {
             e.preventDefault();
             const idx = parseInt(document.getElementById('indiceEditando').value);
+            const nombreInput = document.getElementById('invNombre').value.trim();
+            const categoriaInput = document.getElementById('invCategoria').value.trim();
+            const costoInput = parseFloat(document.getElementById('invCosto').value) || 0;
+            const p1Input = parseFloat(document.getElementById('invPrecio1').value) || 0;
+            const p2Input = parseFloat(document.getElementById('invPrecio2').value) || 0;
+
+            const codigoStr = (idx === -1) ? (100000 + inventario.length + 1).toString() : inventario[idx].codigo;
+            const nombreConCodigo = `${nombreInput} (${codigoStr})`;
+
             const producto = {
-                nombre: document.getElementById('invNombre').value.trim(),
-                categoria: document.getElementById('invCategoria').value.trim(),
-                costo: parseFloat(document.getElementById('invCosto').value) || 0,
-                precio1: parseFloat(document.getElementById('invPrecio1').value) || 0,
-                precio2: parseFloat(document.getElementById('invPrecio2').value) || 0
+                nombre: nombreConCodigo,
+                nombrePuro: nombreInput,
+                codigo: codigoStr,
+                categoria: categoriaInput,
+                costo: costoInput,
+                precio1: p1Input,
+                precio2: p2Input
             };
 
             if(idx === -1) {
@@ -376,8 +392,9 @@
             if (lblCount) lblCount.innerText = inventario.length;
             if (!tbody) return;
 
-            // 1. Filtrar por el término escrito
+            // 1. Filtrar por Código, Nombre, Marca o Precio
             let filtrados = inventario.map((p, originalIndex) => ({ p, originalIndex })).filter(({ p }) => 
+                p.codigo.toLowerCase().includes(filtro) ||
                 p.nombre.toLowerCase().includes(filtro) || 
                 p.categoria.toLowerCase().includes(filtro) || 
                 p.costo.toString().includes(filtro) || 
@@ -385,7 +402,7 @@
                 p.precio2.toString().includes(filtro)
             );
 
-            // 2. Ordenar según la opción seleccionada
+            // 2. Ordenar según selección
             filtrados.sort((a, b) => {
                 if (criterioOrden === 'nombre_asc') {
                     return a.p.nombre.localeCompare(b.p.nombre);
@@ -423,7 +440,7 @@
         function editarProducto(i) {
             const p = inventario[i];
             if (!p) return;
-            document.getElementById('invNombre').value = p.nombre;
+            document.getElementById('invNombre').value = p.nombrePuro;
             document.getElementById('invCategoria').value = p.categoria;
             document.getElementById('invCosto').value = p.costo;
             document.getElementById('invPrecio1').value = p.precio1;
@@ -445,7 +462,7 @@
             const div = document.getElementById('listaSugerencias');
             if(!q) { div.classList.add('hidden'); return; }
             
-            const filtrados = inventario.filter(p => p.nombre.toLowerCase().includes(q) || p.categoria.toLowerCase().includes(q)).slice(0, 25);
+            const filtrados = inventario.filter(p => p.codigo.toLowerCase().includes(q) || p.nombre.toLowerCase().includes(q) || p.categoria.toLowerCase().includes(q)).slice(0, 25);
             if(filtrados.length === 0) { div.classList.add('hidden'); return; }
 
             div.innerHTML = '';
