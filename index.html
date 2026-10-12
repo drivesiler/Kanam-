@@ -188,14 +188,14 @@
                 <!-- BUSCADOR DEDICADO EN INVENTARIO -->
                 <div class="mb-4">
                     <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Buscar en el Inventario</label>
-                    <input type="text" id="buscadorInventario" placeholder="Escribe para filtrar por nombre o marca..." oninput="renderInventario()" class="w-full border rounded-lg px-4 py-2 text-sm shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <input type="text" id="buscadorInventario" placeholder="Escribe el nombre del perfume o marca para filtrar..." oninput="renderInventario()" class="w-full border rounded-lg px-4 py-2 text-sm shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
 
                 <div class="overflow-x-auto max-h-96 overflow-y-auto border rounded">
                     <table class="w-full text-left border-collapse">
                         <thead class="sticky top-0 bg-gray-200 text-gray-700 text-xs uppercase z-10">
                             <tr>
-                                <th class="p-3 border-b">Descripción</th>
+                                <th class="p-3 border-b">Descripción (Nombre Perfume)</th>
                                 <th class="p-3 border-b">Categoría / Marca</th>
                                 <th class="p-3 border-b">Costo Inversión</th>
                                 <th class="p-3 border-b">Precio 1 (Detal)</th>
@@ -273,26 +273,39 @@
                     for (let i = 1; i < lineas.length; i++) {
                         const linea = lineas[i].trim();
                         if (!linea) continue;
-                        const cols = linea.split(',');
-                        if (cols.length >= 5) {
-                            // Columnas: Nombre,Categoria,Costo,PrecioDetal,PrecioMayor (El CSV original generado ya tiene el nombre primero)
-                            const nombreArticulo = cols[0] ? cols[0].trim().replace(/^"|"$/g, '') : 'Perfume';
-                            const categoriaArticulo = cols[1] ? cols[1].trim().replace(/^"|"$/g, '') : 'General';
-                            
-                            tempInventario.push({
-                                nombre: nombreArticulo,
-                                categoria: categoriaArticulo,
-                                costo: parseFloat(cols[2]) || 0,
-                                precio1: parseFloat(cols[3]) || 0,
-                                precio2: parseFloat(cols[4]) || 0
-                            });
+                        
+                        // Parsear respetando comas
+                        const cols = linea.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || linea.split(',');
+                        if (cols.length >= 4) {
+                            let nombrePerfume = cols[0] ? cols[0].replace(/^"|"$/g, '').trim() : '';
+                            let categoria = cols[1] ? cols[1].replace(/^"|"$/g, '').trim() : '';
+                            let costo = parseFloat(cols[2]) || 0;
+                            let precio1 = parseFloat(cols[3]) || 0;
+                            let precio2 = parseFloat(cols[4]) || 0;
+
+                            // Si por algún motivo venía con número puro al inicio (ej. código)
+                            if (/^\d+$/.test(nombrePerfume) && categoria && !/^\d+$/.test(categoria)) {
+                                const temp = nombrePerfume;
+                                nombrePerfume = categoria;
+                                categoria = temp;
+                            }
+
+                            if (nombrePerfume && nombrePerfume.toLowerCase() !== 'nombre' && nombrePerfume.toLowerCase() !== 'codigo') {
+                                tempInventario.push({
+                                    nombre: nombrePerfume,
+                                    categoria: categoria || 'General',
+                                    costo: costo,
+                                    precio1: precio1,
+                                    precio2: precio2
+                                });
+                            }
                         }
                     }
                     if (tempInventario.length > 0) {
                         inventario = tempInventario;
                         localStorage.removeItem('perf_inventario');
                         renderInventario();
-                        if (forzar) alert(`¡Sincronizado! Total exacto de artículos: ${inventario.length}`);
+                        if (forzar) alert(`¡Catálogo actualizado correctamente! Total de artículos: ${inventario.length}`);
                     }
                 }
             } catch (error) {
@@ -357,7 +370,7 @@
                 const { p, originalIndex } = filtrados[i];
                 html += `
                     <tr class="border-b hover:bg-gray-50">
-                        <td class="p-3 font-medium">${p.nombre}</td>
+                        <td class="p-3 font-medium text-slate-900">${p.nombre}</td>
                         <td class="p-3 text-gray-600">${p.categoria}</td>
                         <td class="p-3">$${p.costo.toFixed(2)}</td>
                         <td class="p-3 font-semibold text-green-700">$${p.precio1.toFixed(2)}</td>
@@ -403,7 +416,7 @@
             filtrados.forEach(p => {
                 const pEscaped = JSON.stringify(p).replace(/'/g, "&apos;");
                 div.innerHTML += `<div onclick='agregarItemFactura(${pEscaped})' class="p-2 hover:bg-indigo-50 cursor-pointer text-sm border-b flex justify-between">
-                    <span>${p.nombre} <span class="text-gray-400">(${p.categoria})</span></span>
+                    <span><strong>${p.nombre}</strong> <span class="text-gray-400">(${p.categoria})</span></span>
                     <span class="font-bold text-indigo-600">$${p.precio1.toFixed(2)} / $${p.precio2.toFixed(2)}</span>
                 </div>`;
             });
@@ -425,7 +438,7 @@
             itemsFacturaActual.forEach((item, i) => {
                 tbody.innerHTML += `
                     <tr class="border-b">
-                        <td class="p-3 font-medium">${item.nombre}</td>
+                        <td class="p-3 font-medium text-slate-900">${item.nombre}</td>
                         <td class="p-3 text-center"><input type="number" min="1" value="${item.cantidad}" onchange="cambiarCantidad(${i}, this.value)" class="w-16 border rounded px-2 py-1 text-sm text-center"></td>
                         <td class="p-3">$${item.precio.toFixed(2)}</td>
                         <td class="p-3 font-semibold text-slate-800">$${(item.cantidad * item.precio).toFixed(2)}</td>
