@@ -143,7 +143,7 @@
             </div>
         </section>
 
-        <!-- TAB: INVENTARIO (PROTEGIDO CON BUSCADOR) -->
+        <!-- TAB: INVENTARIO -->
         <section id="tab-inventario" class="hidden space-y-6 no-print">
             <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 p-4 bg-indigo-50 border border-indigo-100 rounded-lg gap-4">
@@ -154,7 +154,7 @@
                         </p>
                     </div>
                     <button onclick="cargarBaseDatos(true)" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded transition shadow flex items-center gap-2">
-                        🔄 Recargar catalogo.csv de GitHub
+                        🔄 Sincronizar con catalogo.csv
                     </button>
                 </div>
 
@@ -185,10 +185,10 @@
                     </div>
                 </form>
 
-                <!-- Cuadro de búsqueda para el Inventario -->
+                <!-- BUSCADOR DEDICADO EN INVENTARIO -->
                 <div class="mb-4">
-                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Filtrar Inventario</label>
-                    <input type="text" id="buscadorInventario" placeholder="Buscar por nombre o categoría en el inventario..." oninput="renderInventario()" class="w-full border rounded-lg px-4 py-2 text-sm shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Buscar en el Inventario</label>
+                    <input type="text" id="buscadorInventario" placeholder="Escribe para filtrar por nombre o marca..." oninput="renderInventario()" class="w-full border rounded-lg px-4 py-2 text-sm shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
 
                 <div class="overflow-x-auto max-h-96 overflow-y-auto border rounded">
@@ -286,9 +286,9 @@
                     }
                     if (tempInventario.length > 0) {
                         inventario = tempInventario;
-                        localStorage.removeItem('perf_inventario');
+                        localStorage.removeItem('perf_inventario'); // Limpia cualquier basura anterior
                         renderInventario();
-                        if (forzar) alert(`¡Catálogo sincronizado perfectamente! Total de artículos: ${inventario.length}`);
+                        if (forzar) alert(`¡Sincronizado! Total exacto de artículos: ${inventario.length}`);
                     }
                 }
             } catch (error) {
@@ -296,6 +296,7 @@
             }
         }
 
+        // Carga inicial obligatoria
         cargarBaseDatos();
 
         function cambiarTab(tab) {
@@ -333,25 +334,25 @@
 
             document.getElementById('formProducto').reset();
             renderInventario();
-            alert('Producto guardado e inventario actualizado.');
+            alert('Producto guardado correctamente.');
         }
 
         function renderInventario() {
             const tbody = document.getElementById('tablaInventario');
             const lblCount = document.getElementById('totalArticulosCount');
-            const filtro = document.getElementById('buscadorInventario') ? document.getElementById('buscadorInventario').value.toLowerCase() : '';
+            const filtro = document.getElementById('buscadorInventario') ? document.getElementById('buscadorInventario').value.toLowerCase().trim() : '';
             
             if (lblCount) lblCount.innerText = inventario.length;
             if (!tbody) return;
 
-            // Filtrar productos según el texto ingresado en el buscador de inventario
-            const inventarioFiltrado = inventario.map((p, originalIndex) => ({ p, originalIndex })).filter(({ p }) => 
+            // Filtrar inventario según el buscador dedicado
+            const filtrados = inventario.map((p, originalIndex) => ({ p, originalIndex })).filter(({ p }) => 
                 p.nombre.toLowerCase().includes(filtro) || p.categoria.toLowerCase().includes(filtro)
             );
 
             let html = '';
-            for(let i = 0; i < inventarioFiltrado.length; i++) {
-                const { p, originalIndex } = inventarioFiltrado[i];
+            for(let i = 0; i < filtrados.length; i++) {
+                const { p, originalIndex } = filtrados[i];
                 html += `
                     <tr class="border-b hover:bg-gray-50">
                         <td class="p-3 font-medium">${p.nombre}</td>
