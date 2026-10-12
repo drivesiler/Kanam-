@@ -195,7 +195,7 @@
                     <table class="w-full text-left border-collapse">
                         <thead class="sticky top-0 bg-gray-200 text-gray-700 text-xs uppercase z-10">
                             <tr>
-                                <th class="p-3 border-b">Descripción (Nombre Perfume)</th>
+                                <th class="p-3 border-b">Descripción</th>
                                 <th class="p-3 border-b">Categoría / Marca</th>
                                 <th class="p-3 border-b">Costo Inversión</th>
                                 <th class="p-3 border-b">Precio 1 (Detal)</th>
@@ -270,30 +270,44 @@
                     const text = await response.text();
                     const lineas = text.split(/\r?\n/);
                     let tempInventario = [];
+
                     for (let i = 1; i < lineas.length; i++) {
                         const linea = lineas[i].trim();
                         if (!linea) continue;
                         
-                        // Parsear respetando comas
-                        const cols = linea.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || linea.split(',');
+                        // Parsear respetando comas y comillas
+                        const cols = linea.split(',').map(c => c.replace(/^"|"$/g, '').trim());
+                        
                         if (cols.length >= 4) {
-                            let nombrePerfume = cols[0] ? cols[0].replace(/^"|"$/g, '').trim() : '';
-                            let categoria = cols[1] ? cols[1].replace(/^"|"$/g, '').trim() : '';
-                            let costo = parseFloat(cols[2]) || 0;
-                            let precio1 = parseFloat(cols[3]) || 0;
-                            let precio2 = parseFloat(cols[4]) || 0;
+                            let c0 = cols[0] || '';
+                            let c1 = cols[1] || '';
+                            let c2 = cols[2] || '0';
+                            let c3 = cols[3] || '0';
+                            let c4 = cols[4] || '0';
 
-                            // Si por algún motivo venía con número puro al inicio (ej. código)
-                            if (/^\d+$/.test(nombrePerfume) && categoria && !/^\d+$/.test(categoria)) {
-                                const temp = nombrePerfume;
-                                nombrePerfume = categoria;
-                                categoria = temp;
+                            let nombrePerfume = '';
+                            let categoriaPerfume = '';
+                            let costo = 0, precio1 = 0, precio2 = 0;
+
+                            // Si la primera columna es un número/código (ej. 100533)
+                            if (/^\d+$/.test(c0)) {
+                                nombrePerfume = c1 ? `${c1} (${c0})` : c0; // Muestra "Nombre (Código)" o Nombre
+                                categoriaPerfume = cols[2] && !/^\d+(\.\d+)?$/.test(cols[2]) ? cols[2] : 'General';
+                                costo = parseFloat(cols[3]) || parseFloat(cols[2]) || 0;
+                                precio1 = parseFloat(cols[4]) || parseFloat(cols[3]) || 0;
+                                precio2 = parseFloat(cols[5]) || parseFloat(cols[4]) || 0;
+                            } else {
+                                nombrePerfume = c0;
+                                categoriaPerfume = c1;
+                                costo = parseFloat(c2) || 0;
+                                precio1 = parseFloat(c3) || 0;
+                                precio2 = parseFloat(c4) || 0;
                             }
 
                             if (nombrePerfume && nombrePerfume.toLowerCase() !== 'nombre' && nombrePerfume.toLowerCase() !== 'codigo') {
                                 tempInventario.push({
                                     nombre: nombrePerfume,
-                                    categoria: categoria || 'General',
+                                    categoria: categoriaPerfume || 'General',
                                     costo: costo,
                                     precio1: precio1,
                                     precio2: precio2
@@ -301,11 +315,12 @@
                             }
                         }
                     }
+
                     if (tempInventario.length > 0) {
                         inventario = tempInventario;
                         localStorage.removeItem('perf_inventario');
                         renderInventario();
-                        if (forzar) alert(`¡Catálogo actualizado correctamente! Total de artículos: ${inventario.length}`);
+                        if (forzar) alert(`¡Catálogo sincronizado! Total de artículos: ${inventario.length}`);
                     }
                 }
             } catch (error) {
@@ -370,7 +385,7 @@
                 const { p, originalIndex } = filtrados[i];
                 html += `
                     <tr class="border-b hover:bg-gray-50">
-                        <td class="p-3 font-medium text-slate-900">${p.nombre}</td>
+                        <td class="p-3 font-semibold text-slate-900">${p.nombre}</td>
                         <td class="p-3 text-gray-600">${p.categoria}</td>
                         <td class="p-3">$${p.costo.toFixed(2)}</td>
                         <td class="p-3 font-semibold text-green-700">$${p.precio1.toFixed(2)}</td>
