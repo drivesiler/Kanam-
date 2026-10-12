@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Perfumería</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <!-- Navegación -->
+    <header class="bg-slate-900 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center">
+            <h1 class="text-2xl font-bold tracking-wider mb-2 md:mb-0">🌸 Sistema Perfumería</h1>
+            <nav class="flex space-x-2 md:space-x-4">
+                <button onclick="cambiarTab('facturacion')" id="btn-facturacion" class="px-3 py-2 rounded bg-indigo-600 font-medium text-sm transition">Factura / Presupuesto</button>
+                <button onclick="cambiarTab('inventario')" id="btn-inventario" class="px-3 py-2 rounded bg-slate-800 hover:bg-slate-700 font-medium text-sm transition">Inventario</button>
+                <button onclick="cambiarTab('reportes')" id="btn-reportes" class="px-3 py-2 rounded bg-slate-800 hover:bg-slate-700 font-medium text-sm transition">Reportes & Ganancias</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6">
+
+        <!-- TAB: FACTURACIÓN / PRESUPUESTO -->
+        <section id="tab-facturacion" class="space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <div class="flex flex-col md:flex-row justify-between border-b pb-4 mb-4 gap-4">
+                    <div>
+                        <input type="file" id="logoInput" accept="image/*" class="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 mb-2">
+                        <div id="logoContainer" class="mt-2"></div>
+                    </div>
+                    <div class="text-right">
+                        <select id="tipoDocumento" class="border rounded px-3 py-1 font-bold text-lg text-slate-800 mb-2 bg-gray-50">
+                            <option value="FACTURA">FACTURA (INVOICE)</option>
+                            <option value="PRESUPUESTO">PRESUPUESTO (QUOTE)</option>
+                        </select>
+                        <p class="text-sm text-gray-500">Fecha: <span id="fechaActual"></span></p>
+                    </div>
+                </div>
+
+                <!-- Datos Cliente y Tipo de Precio -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Cliente</label>
+                        <input type="text" id="nombreCliente" placeholder="Nombre del cliente" class="w-full border rounded px-3 py-2 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Modalidad de Precio</label>
+                        <select id="modalidadPrecio" onchange="actualizarPreciosFactura()" class="w-full border rounded px-3 py-2 text-sm bg-gray-50">
+                            <option value="1">Precio 1 (Detal)</option>
+                            <option value="2">Precio 2 (Mayor)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Tax / Impuesto (%)</label>
+                        <input type="number" id="taxPorcentaje" value="0" oninput="calcularTotales()" class="w-full border rounded px-3 py-2 text-sm">
+                    </div>
+                </div>
+
+                <!-- Buscador de productos -->
+                <div class="relative mb-6">
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Buscar y Agregar Producto</label>
+                    <input type="text" id="buscadorProducto" placeholder="Escribe el nombre del perfume para buscar..." oninput="filtrarProductos()" class="w-full border rounded-lg px-4 py-2 text-sm shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <div id="listaSugerencias" class="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto hidden"></div>
+                </div>
+
+                <!-- Tabla de factura -->
+                <div class="overflow-x-auto mb-6">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-100 text-gray-600 text-xs uppercase">
+                                <th class="p-3 border-b">Descripción</th>
+                                <th class="p-3 border-b w-24">Cantidad</th>
+                                <th class="p-3 border-b w-32">Precio Unit.</th>
+                                <th class="p-3 border-b w-32">Total</th>
+                                <th class="p-3 border-b w-16">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemsFactura" class="text-sm">
+                            <!-- Items añadidos aquí -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Totales -->
+                <div class="flex justify-end">
+                    <div class="w-full md:w-80 space-y-2 text-sm">
+                        <div class="flex justify-between py-1 border-b">
+                            <span class="font-medium text-gray-600">Subtotal:</span>
+                            <span id="lblSubtotal" class="font-bold">$0.00</span>
+                        </div>
+                        <div class="flex justify-between py-1 border-b">
+                            <span class="font-medium text-gray-600">Tax (<span id="lblTaxPercent">0</span>%):</span>
+                            <span id="lblTax" class="font-bold">$0.00</span>
+                        </div>
+                        <div class="flex justify-between py-2 text-lg font-bold text-indigo-900 border-t-2 border-indigo-900">
+                            <span>Total:</span>
+                            <span id="lblTotal">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end gap-3">
+                    <button onclick="guardarImprimirFactura()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2 rounded-lg text-sm transition shadow">Guardar e Imprimir / PDF</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB: INVENTARIO -->
+        <section id="tab-inventario" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <h2 class="text-lg font-bold text-slate-800 mb-4">Gestión de Inventario</h2>
+                
+                <form id="formProducto" onsubmit="guardarProducto(event)" class="grid grid-cols-1 md:grid-cols-6 gap-3 mb-6 bg-gray-50 p-4 rounded-lg border">
+                    <input type="hidden" id="indiceEditando" value="-1">
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Nombre / Descripción</label>
+                        <input type="text" id="invNombre" required class="w-full border rounded px-3 py-2 text-sm bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Categoría / Marca</label>
+                        <input type="text" id="invCategoria" required class="w-full border rounded px-3 py-2 text-sm bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Costo Inversión ($)</label>
+                        <input type="number" step="0.01" id="invCosto" required class="w-full border rounded px-3 py-2 text-sm bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Precio 1 (Detal) ($)</label>
+                        <input type="number" step="0.01" id="invPrecio1" required class="w-full border rounded px-3 py-2 text-sm bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1">Precio 2 (Mayor) ($)</label>
+                        <input type="number" step="0.01" id="invPrecio2" required class="w-full border rounded px-3 py-2 text-sm bg-white">
+                    </div>
+                    <div class="md:col-span-6 flex justify-end gap-2 mt-2">
+                        <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-medium transition">Guardar Producto</button>
+                    </div>
+                </form>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-100 text-gray-600 text-xs uppercase">
+                                <th class="p-3 border-b">Descripción</th>
+                                <th class="p-3 border-b">Categoría / Marca</th>
+                                <th class="p-3 border-b">Costo Inversión</th>
+                                <th class="p-3 border-b">Precio 1 (Detal)</th>
+                                <th class="p-3 border-b">Precio 2 (Mayor)</th>
+                                <th class="p-3 border-b text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaInventario" class="text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB: REPORTES & GANANCIAS -->
+        <section id="tab-reportes" class="hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <p class="text-xs font-bold text-gray-500 uppercase">Inversión Total en Inventario</p>
+                    <p id="kpiInversion" class="text-2xl font-black text-slate-800 mt-2">$0.00</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <p class="text-xs font-bold text-gray-500 uppercase">Ganancia Potencial (Detal - P1)</p>
+                    <p id="kpiGananciaDetal" class="text-2xl font-black text-green-600 mt-2">$0.00</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <p class="text-xs font-bold text-gray-500 uppercase">Ventas / Facturas Emitidas</p>
+                    <p id="kpiVentas" class="text-2xl font-black text-indigo-600 mt-2">0</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <h2 class="text-lg font-bold text-slate-800 mb-4">Historial de Facturas y Presupuestos</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-100 text-gray-600 text-xs uppercase">
+                                <th class="p-3 border-b">Tipo</th>
+                                <th class="p-3 border-b">Cliente</th>
+                                <th class="p-3 border-b">Fecha</th>
+                                <th class="p-3 border-b">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaHistorial" class="text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        let inventario = JSON.parse(localStorage.getItem('perf_inventario')) || [];
+        let historial = JSON.parse(localStorage.getItem('perf_historial')) || [];
+        let itemsFacturaActual = [];
+
+        document.getElementById('fechaActual').innerText = new Date().toLocaleDateString();
+
+        function cambiarTab(tab) {
+            ['facturacion', 'inventario', 'reportes'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.add('hidden');
+                document.getElementById(`btn-${t}`).className = "px-3 py-2 rounded bg-slate-800 hover:bg-slate-700 font-medium text-sm transition";
+            });
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            document.getElementById(`btn-${tab}`).className = "px-3 py-2 rounded bg-indigo-600 font-medium text-sm transition";
+            if(tab === 'reportes') actualizarReportes();
+        }
+
+        // Inventario
+        function guardarProducto(e) {
+            e.preventDefault();
+            const idx = document.getElementById('indiceEditando').value;
+            const producto = {
+                nombre: document.getElementById('invNombre').value,
+                categoria: document.getElementById('invCategoria').value,
+                costo: parseFloat(document.getElementById('invCosto').value),
+                precio1: parseFloat(document.getElementById('invPrecio1').value),
+                precio2: parseFloat(document.getElementById('invPrecio2').value)
+            };
+
+            if(idx == -1) {
+                inventario.push(producto);
+            } else {
+                inventario[idx] = producto;
+                document.getElementById('indiceEditando').value = -1;
+            }
+
+            localStorage.setItem('perf_inventario', JSON.stringify(inventario));
+            document.getElementById('formProducto').reset();
+            renderInventario();
+        }
+
+        function renderInventario() {
+            const tbody = document.getElementById('tablaInventario');
+            tbody.innerHTML = '';
+            inventario.forEach((p, i) => {
+                tbody.innerHTML += `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="p-3 font-medium">${p.nombre}</td>
+                        <td class="p-3 text-gray-600">${p.categoria}</td>
+                        <td class="p-3">$${p.costo.toFixed(2)}</td>
+                        <td class="p-3">$${p.precio1.toFixed(2)}</td>
+                        <td class="p-3">$${p.precio2.toFixed(2)}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="editarProducto(${i})" class="text-indigo-600 hover:underline mr-2">Editar</button>
+                            <button onclick="eliminarProducto(${i})" class="text-red-600 hover:underline">Eliminar</button>
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        function editarProducto(i) {
+            const p = inventario[i];
+            document.getElementById('invNombre').value = p.nombre;
+            document.getElementById('invCategoria').value = p.categoria;
+            document.getElementById('invCosto').value = p.costo;
+            document.getElementById('invPrecio1').value = p.precio1;
+            document.getElementById('invPrecio2').value = p.precio2;
+            document.getElementById('indiceEditando').value = i;
+        }
+
+        function eliminarProducto(i) {
+            inventario.splice(i, 1);
+            localStorage.setItem('perf_inventario', JSON.stringify(inventario));
+            renderInventario();
+        }
+
+        // Buscador Inteligente Factura
+        function filtrarProductos() {
+            const q = document.getElementById('buscadorProducto').value.toLowerCase();
+            const div = document.getElementById('listaSugerencias');
+            if(!q) { div.classList.add('hidden'); return; }
+            
+            const filtrados = inventario.filter(p => p.nombre.toLowerCase().includes(q) || p.categoria.toLowerCase().includes(q));
+            if(filtrados.length === 0) { div.classList.add('hidden'); return; }
+
+            div.innerHTML = '';
+            filtrados.forEach(p => {
+                div.innerHTML += `<div onclick='agregarItemFactura(${JSON.stringify(p)})' class="p-2 hover:bg-indigo-50 cursor-pointer text-sm border-b">${p.nombre} - <span class="text-gray-500">${p.categoria}</span></div>`;
+            });
+            div.classList.remove('hidden');
+        }
+
+        function agregarItemFactura(p) {
+            const modalidad = document.getElementById('modalidadPrecio').value;
+            const precioUnit = modalidad == "1" ? p.precio1 : p.precio2;
+            itemsFacturaActual.push({ nombre: p.nombre, cantidad: 1, precio: precioUnit });
+            document.getElementById('buscadorProducto').value = '';
+            document.getElementById('listaSugerencias').classList.add('hidden');
+            renderFacturaItems();
+        }
+
+        function renderFacturaItems() {
+            const tbody = document.getElementById('itemsFactura');
+            tbody.innerHTML = '';
+            itemsFacturaActual.forEach((item, i) => {
+                tbody.innerHTML += `
+                    <tr class="border-b">
+                        <td class="p-3">${item.nombre}</td>
+                        <td class="p-3"><input type="number" min="1" value="${item.cantidad}" onchange="cambiarCantidad(${i}, this.value)" class="w-16 border rounded px-2 py-1 text-sm"></td>
+                        <td class="p-3">$${item.precio.toFixed(2)}</td>
+                        <td class="p-3 font-medium">$${(item.cantidad * item.precio).toFixed(2)}</td>
+                        <td class="p-3"><button onclick="quitarItem(${i})" class="text-red-600 font-bold">×</button></td>
+                    </tr>`;
+            });
+            calcularTotales();
+        }
+
+        function cambiarCantidad(i, val) {
+            itemsFacturaActual[i].cantidad = parseInt(val) || 1;
+            renderFacturaItems();
+        }
+
+        function quitarItem(i) {
+            itemsFacturaActual.splice(i, 1);
+            renderFacturaItems();
+        }
+
+        function actualizarPreciosFactura() {
+            const modalidad = document.getElementById('modalidadPrecio').value;
+            itemsFacturaActual.forEach(item => {
+                const prod = inventario.find(p => p.nombre === item.nombre);
+                if(prod) item.precio = modalidad == "1" ? prod.precio1 : prod.precio2;
+            });
+            renderFacturaItems();
+        }
+
+        function calcularTotales() {
+            const subtotal = itemsFacturaActual.reduce((acc, item) => acc + (item.cantidad * item.precio), 0);
+            const taxPct = parseFloat(document.getElementById('taxPorcentaje').value) || 0;
+            const tax = subtotal * (taxPct / 100);
+            const total = subtotal + tax;
+
+            document.getElementById('lblSubtotal').innerText = `$${subtotal.toFixed(2)}`;
+            document.getElementById('lblTaxPercent').innerText = taxPct;
+            document.getElementById('lblTax').innerText = `$${tax.toFixed(2)}`;
+            document.getElementById('lblTotal').innerText = `$${total.toFixed(2)}`;
+        }
+
+        function guardarImprimirFactura() {
+            if(itemsFacturaActual.length === 0) { alert('Agrega al menos un producto'); return; }
+            const total = itemsFacturaActual.reduce((acc, item) => acc + (item.cantidad * item.precio), 0);
+            const tipo = document.getElementById('tipoDocumento').value;
+            const cliente = document.getElementById('nombreCliente').value || 'Cliente General';
+
+            historial.push({ tipo, cliente, fecha: new Date().toLocaleDateString(), total });
+            localStorage.setItem('perf_historial', JSON.stringify(historial));
+            
+            window.print();
+            itemsFacturaActual = [];
+            renderFacturaItems();
+        }
+
+        // Reportes
+        function actualizarReportes() {
+            const inversion = inventario.reduce((acc, p) => acc + p.costo, 0);
+            const gananciaDetal = inventario.reduce((acc, p) => acc + (p.precio1 - p.costo), 0);
+            
+            document.getElementById('kpiInversion').innerText = `$${inversion.toFixed(2)}`;
+            document.getElementById('kpiGananciaDetal').innerText = `$${gananciaDetal.toFixed(2)}`;
+            document.getElementById('kpiVentas').innerText = historial.length;
+
+            const tbody = document.getElementById('tablaHistorial');
+            tbody.innerHTML = '';
+            historial.forEach(h => {
+                tbody.innerHTML += `
+                    <tr class="border-b">
+                        <td class="p-3 font-semibold text-indigo-600">${h.tipo}</td>
+                        <td class="p-3">${h.cliente}</td>
+                        <td class="p-3">${h.fecha}</td>
+                        <td class="p-3 font-bold">$${h.total.toFixed(2)}</td>
+                    </tr>`;
+            });
+        }
+
+        // Logo
+        document.getElementById('logoInput').addEventListener('change', function(e) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                document.getElementById('logoContainer').innerHTML = `<img src="${event.target.result}" class="h-16 object-contain">`;
+            }
+            reader.readAsDataURL(e.target.files[0]);
+        });
+
+        renderInventario();
+    </script>
+</body>
+</html>
