@@ -142,12 +142,12 @@
             </div>
         </section>
 
-        <!-- TAB: INVENTARIO (PROTEGIDO) -->
+        <!-- TAB: INVENTARIO (PROTEGIDO Y CON RENDER INMEDIATO) -->
         <section id="tab-inventario" class="hidden space-y-6 no-print">
             <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-lg font-bold text-slate-800">Base de Datos de Inventario 🔒</h2>
-                    <button onclick="cargarBaseDatosAutomatico()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold px-3 py-2 rounded transition flex items-center gap-1">
+                    <button onclick="cargarBaseDatosAutomatico(true)" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold px-3 py-2 rounded transition flex items-center gap-1">
                         🔄 Recargar Base de Datos de GitHub
                     </button>
                 </div>
@@ -242,7 +242,6 @@
 
         document.getElementById('fechaActual').innerText = new Date().toLocaleDateString();
 
-        // Contraseña para Inventario (Puedes cambiar 'kanam2026' por la clave que quieras)
         function verificarAccesoInventario() {
             const password = prompt("Ingresa la contraseña de administrador para ver el Inventario:");
             if (password === "kanam2026") {
@@ -252,7 +251,7 @@
             }
         }
 
-        async function cargarBaseDatosAutomatico() {
+        async function cargarBaseDatosAutomatico(forzar = false) {
             try {
                 const response = await fetch('productos.csv');
                 if (response.ok) {
@@ -277,16 +276,16 @@
                         inventario = inventarioCargado;
                         localStorage.setItem('perf_inventario', JSON.stringify(inventario));
                         renderInventario();
+                        if (forzar) alert('¡Inventario recargado correctamente desde GitHub!');
                     }
                 }
             } catch (error) {
-                console.log('Cargando inventario guardado localmente...');
+                console.log('Cargando inventario desde memoria local...');
             }
         }
 
-        if (inventario.length === 0) {
-            cargarBaseDatosAutomatico();
-        }
+        // Carga inicial al abrir la aplicación
+        cargarBaseDatosAutomatico();
 
         function cambiarTab(tab) {
             ['facturacion', 'inventario', 'reportes'].forEach(t => {
@@ -298,6 +297,7 @@
                 document.getElementById(`btn-${tab}`).className = "px-3 py-2 rounded bg-indigo-600 font-medium text-sm transition";
             } else {
                 document.getElementById(`btn-inventario`).className = "px-3 py-2 rounded bg-indigo-600 font-medium text-sm transition";
+                renderInventario(); // Asegura mostrar todos los artículos al ingresar
             }
             if(tab === 'reportes') actualizarReportes();
         }
@@ -327,6 +327,7 @@
 
         function renderInventario() {
             const tbody = document.getElementById('tablaInventario');
+            if(!tbody) return;
             tbody.innerHTML = '';
             inventario.forEach((p, i) => {
                 tbody.innerHTML += `
@@ -440,7 +441,6 @@
             const tipo = document.getElementById('tipoDocumento').value;
             const cliente = document.getElementById('nombreCliente').value || 'Cliente General';
 
-            // Guardamos con estado activo (archivado: false)
             historial.push({ tipo, cliente, fecha: new Date().toLocaleDateString(), total, archivado: false });
             localStorage.setItem('perf_historial', JSON.stringify(historial));
             
@@ -449,7 +449,6 @@
             renderFacturaItems();
         }
 
-        // Alternar estado de archivo de la factura
         function alternarArchivo(i) {
             historial[i].archivado = !historial[i].archivado;
             localStorage.setItem('perf_historial', JSON.stringify(historial));
@@ -463,7 +462,6 @@
             document.getElementById('kpiInversion').innerText = `$${inversion.toFixed(2)}`;
             document.getElementById('kpiGananciaDetal').innerText = `$${gananciaDetal.toFixed(2)}`;
 
-            // Solo contamos facturas activas (no archivadas) para las métricas
             const activas = historial.filter(h => !h.archivado).length;
             document.getElementById('kpiVentas').innerText = activas;
 
