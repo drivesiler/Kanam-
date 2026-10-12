@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Perfumería - Kanam</title>
+    <title>Sistema Perfumería Kanam</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
 <body class="bg-gray-100 font-sans">
@@ -14,7 +14,7 @@
             <h1 class="text-2xl font-bold tracking-wider mb-2 md:mb-0">🌸 Perfumería Kanam</h1>
             <nav class="flex space-x-2 md:space-x-4">
                 <button onclick="cambiarTab('facturacion')" id="btn-facturacion" class="px-3 py-2 rounded bg-indigo-600 font-medium text-sm transition">Factura / Presupuesto</button>
-                <button onclick="cambiarTab('inventario')" id="btn-inventario" class="px-3 py-2 rounded bg-slate-800 hover:bg-slate-700 font-medium text-sm transition">Inventario & Base de Datos</button>
+                <button onclick="cambiarTab('inventario')" id="btn-inventario" class="px-3 py-2 rounded bg-slate-800 hover:bg-slate-700 font-medium text-sm transition">Inventario</button>
                 <button onclick="cambiarTab('reportes')" id="btn-reportes" class="px-3 py-2 rounded bg-slate-800 hover:bg-slate-700 font-medium text-sm transition">Reportes & Ganancias</button>
             </nav>
         </div>
@@ -27,7 +27,7 @@
             <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                 <div class="flex flex-col md:flex-row justify-between border-b pb-4 mb-4 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Subir Logo de la Empresa</label>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Logo de la Empresa</label>
                         <input type="file" id="logoInput" accept="image/*" class="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 mb-2">
                         <div id="logoContainer" class="mt-2"></div>
                     </div>
@@ -40,7 +40,7 @@
                     </div>
                 </div>
 
-                <!-- Datos Cliente y Tipo de Precio -->
+                <!-- Datos Cliente y Modalidad de Precio -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div>
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Cliente</label>
@@ -48,7 +48,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Modalidad de Precio</label>
-                        <select id="modalidadPrecio" onchange="actualizarPreciosFactura()" class="w-full border rounded px-3 py-2 text-sm bg-gray-50">
+                        <select id="modalidadPrecio" onchange="actualizarPreciosFactura()" class="w-full border rounded px-3 py-2 text-sm bg-gray-50 font-semibold text-indigo-900">
                             <option value="1">Precio 1 (Detal)</option>
                             <option value="2">Precio 2 (Mayor)</option>
                         </select>
@@ -59,14 +59,14 @@
                     </div>
                 </div>
 
-                <!-- Buscador inteligente de productos -->
+                <!-- Buscador inteligente de productos en tiempo real -->
                 <div class="relative mb-6">
-                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Buscador Rápido de Perfumes (Escribe el nombre)</label>
-                    <input type="text" id="buscadorProducto" placeholder="Empieza a escribir el nombre del perfume..." oninput="filtrarProductos()" class="w-full border rounded-lg px-4 py-2 text-sm shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Buscar Perfume (Coincidencia Automática)</label>
+                    <input type="text" id="buscadorProducto" placeholder="Escribe el nombre del perfume..." oninput="filtrarProductos()" class="w-full border rounded-lg px-4 py-2 text-sm shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     <div id="listaSugerencias" class="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-56 overflow-y-auto hidden"></div>
                 </div>
 
-                <!-- Tabla de factura dinámicamente ajustable a CUALQUIER cantidad de renglones -->
+                <!-- Tabla de factura (Ilimitados renglones) -->
                 <div class="overflow-x-auto mb-6">
                     <table class="w-full text-left border-collapse">
                         <thead>
@@ -74,13 +74,11 @@
                                 <th class="p-3 border-b">Descripción del Perfume</th>
                                 <th class="p-3 border-b w-28 text-center">Cantidad</th>
                                 <th class="p-3 border-b w-32">Precio Unit.</th>
-                                <th class="p-3 border-b w-32">Total Línea</th>
+                                <th class="p-3 border-b w-32">Total Linea</th>
                                 <th class="p-3 border-b w-16 text-center">Acción</th>
                             </tr>
                         </thead>
-                        <tbody id="itemsFactura" class="text-sm">
-                            <!-- Los renglones crecen infinitamente según los artículos agregados -->
-                        </tbody>
+                        <tbody id="itemsFactura" class="text-sm"></tbody>
                     </table>
                 </div>
 
@@ -108,21 +106,17 @@
             </div>
         </section>
 
-        <!-- TAB: INVENTARIO & CONEXIÓN GOOGLE SHEETS -->
+        <!-- TAB: INVENTARIO -->
         <section id="tab-inventario" class="hidden space-y-6">
             <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                <h2 class="text-lg font-bold text-slate-800 mb-2">Carga Automática desde Google Sheets / Base de Datos</h2>
-                <p class="text-xs text-gray-500 mb-4">Puedes importar tu base de datos de Google Sheets guardándola como archivo CSV o subiendo tu archivo localmente para que el buscador funcione al instante.</p>
-                
-                <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-lg mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div>
-                        <span class="text-sm font-bold text-indigo-900 block">Importar Base de Datos (CSV / Excel):</span>
-                        <span class="text-xs text-indigo-700">Selecciona tu archivo exportado de Google Sheets para actualizar todo el inventario.</span>
-                    </div>
-                    <input type="file" id="csvFileInput" accept=".csv" onchange="importarCSV(event)" class="text-sm text-gray-500 file:bg-indigo-600 file:text-white file:border-0 file:rounded file:px-4 file:py-2 file:cursor-pointer">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold text-slate-800">Base de Datos de Inventario</h2>
+                    <button onclick="cargarBaseDatosAutomatico()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold px-3 py-2 rounded transition flex items-center gap-1">
+                        🔄 Recargar Base de Datos de GitHub
+                    </button>
                 </div>
 
-                <h3 class="text-md font-bold text-slate-800 mb-3">Agregar o Editar Producto Manualmente</h3>
+                <!-- Agregar / Editar Producto Manual -->
                 <form id="formProducto" onsubmit="guardarProducto(event)" class="grid grid-cols-1 md:grid-cols-6 gap-3 mb-6 bg-gray-50 p-4 rounded-lg border">
                     <input type="hidden" id="indiceEditando" value="-1">
                     <div class="md:col-span-2">
@@ -176,7 +170,7 @@
                     <p id="kpiInversion" class="text-2xl font-black text-slate-800 mt-2">$0.00</p>
                 </div>
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                    <p class="text-xs font-bold text-gray-500 uppercase">Ganancia Potencial Total (Precio 1)</p>
+                    <p class="text-xs font-bold text-gray-500 uppercase">Ganancia Potencial (Detal - P1)</p>
                     <p id="kpiGananciaDetal" class="text-2xl font-black text-green-600 mt-2">$0.00</p>
                 </div>
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
@@ -212,6 +206,44 @@
 
         document.getElementById('fechaActual').innerText = new Date().toLocaleDateString();
 
+        // Carga Automática de productos.csv desde GitHub
+        async function cargarBaseDatosAutomatico() {
+            try {
+                const response = await fetch('productos.csv');
+                if (response.ok) {
+                    const text = await response.text();
+                    const lineas = text.split('\n');
+                    let inventarioCargado = [];
+                    for (let i = 1; i < lineas.length; i++) {
+                        const linea = lineas[i].trim();
+                        if (!linea) continue;
+                        const cols = linea.split(',');
+                        if (cols.length >= 4) {
+                            inventarioCargado.push({
+                                nombre: cols[0] ? cols[0].trim() : 'Perfume',
+                                categoria: cols[1] ? cols[1].trim() : 'General',
+                                costo: parseFloat(cols[2]) || 0,
+                                precio1: parseFloat(cols[3]) || 0,
+                                precio2: parseFloat(cols[4]) || 0
+                            });
+                        }
+                    }
+                    if (inventarioCargado.length > 0) {
+                        inventario = inventarioCargado;
+                        localStorage.setItem('perf_inventario', JSON.stringify(inventario));
+                        renderInventario();
+                    }
+                }
+            } catch (error) {
+                console.log('Cargando inventario guardado localmente...');
+            }
+        }
+
+        // Si no hay productos guardados, intenta cargarlos del archivo
+        if (inventario.length === 0) {
+            cargarBaseDatosAutomatico();
+        }
+
         function cambiarTab(tab) {
             ['facturacion', 'inventario', 'reportes'].forEach(t => {
                 document.getElementById(`tab-${t}`).classList.add('hidden');
@@ -222,37 +254,7 @@
             if(tab === 'reportes') actualizarReportes();
         }
 
-        // Importar CSV de Google Sheets
-        function importarCSV(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const text = e.target.result;
-                const lineas = text.split('\n');
-                inventario = []; // Reemplazar o fusionar
-                for(let i = 1; i < lineas.length; i++) {
-                    const linea = lineas[i].trim();
-                    if(!linea) continue;
-                    const cols = linea.split(',');
-                    if(cols.length >= 4) {
-                        inventario.push({
-                            nombre: cols[0] ? cols[0].replace(/['"]+/g, '') : 'Perfume',
-                            categoria: cols[1] ? cols[1].replace(/['"]+/g, '') : 'General',
-                            costo: parseFloat(cols[2]) || 10.00,
-                            precio1: parseFloat(cols[3]) || 20.00,
-                            precio2: parseFloat(cols[4]) || 15.00
-                        });
-                    }
-                }
-                localStorage.setItem('perf_inventario', JSON.stringify(inventario));
-                renderInventario();
-                alert('¡Base de datos cargada exitosamente desde Google Sheets / CSV!');
-            };
-            reader.readAsText(file);
-        }
-
-        // Inventario Manual
+        // Guardar o Editar Producto Manual
         function guardarProducto(e) {
             e.preventDefault();
             const idx = document.getElementById('indiceEditando').value;
@@ -285,8 +287,8 @@
                         <td class="p-3 font-medium">${p.nombre}</td>
                         <td class="p-3 text-gray-600">${p.categoria}</td>
                         <td class="p-3">$${p.costo.toFixed(2)}</td>
-                        <td class="p-3">$${p.precio1.toFixed(2)}</td>
-                        <td class="p-3">$${p.precio2.toFixed(2)}</td>
+                        <td class="p-3 font-semibold text-green-700">$${p.precio1.toFixed(2)}</td>
+                        <td class="p-3 font-semibold text-indigo-700">$${p.precio2.toFixed(2)}</td>
                         <td class="p-3 text-center">
                             <button onclick="editarProducto(${i})" class="text-indigo-600 hover:underline mr-2">Editar</button>
                             <button onclick="eliminarProducto(${i})" class="text-red-600 hover:underline">Eliminar</button>
@@ -311,7 +313,7 @@
             renderInventario();
         }
 
-        // Buscador Inteligente en línea para factura (soporta de 1 a 100+ renglones)
+        // Buscador Inteligente
         function filtrarProductos() {
             const q = document.getElementById('buscadorProducto').value.toLowerCase();
             const div = document.getElementById('listaSugerencias');
@@ -322,7 +324,10 @@
 
             div.innerHTML = '';
             filtrados.forEach(p => {
-                div.innerHTML += `<div onclick='agregarItemFactura(${JSON.stringify(p)})' class="p-2 hover:bg-indigo-50 cursor-pointer text-sm border-b">${p.nombre} - <span class="text-gray-500 font-semibold">${p.categoria}</span></div>`;
+                div.innerHTML += `<div onclick='agregarItemFactura(${JSON.stringify(p)})' class="p-2 hover:bg-indigo-50 cursor-pointer text-sm border-b flex justify-between">
+                    <span>${p.nombre} <span class="text-gray-400">(${p.categoria})</span></span>
+                    <span class="font-bold text-indigo-600">$${p.precio1.toFixed(2)} / $${p.precio2.toFixed(2)}</span>
+                </div>`;
             });
             div.classList.remove('hidden');
         }
@@ -342,10 +347,10 @@
             itemsFacturaActual.forEach((item, i) => {
                 tbody.innerHTML += `
                     <tr class="border-b">
-                        <td class="p-3">${item.nombre}</td>
+                        <td class="p-3 font-medium">${item.nombre}</td>
                         <td class="p-3 text-center"><input type="number" min="1" value="${item.cantidad}" onchange="cambiarCantidad(${i}, this.value)" class="w-16 border rounded px-2 py-1 text-sm text-center"></td>
                         <td class="p-3">$${item.precio.toFixed(2)}</td>
-                        <td class="p-3 font-medium">$${(item.cantidad * item.precio).toFixed(2)}</td>
+                        <td class="p-3 font-semibold text-slate-800">$${(item.cantidad * item.precio).toFixed(2)}</td>
                         <td class="p-3 text-center"><button onclick="quitarItem(${i})" class="text-red-600 font-bold px-2">×</button></td>
                     </tr>`;
             });
@@ -384,7 +389,7 @@
         }
 
         function guardarImprimirFactura() {
-            if(itemsFacturaActual.length === 0) { alert('Agrega al menos un producto a la factura'); return; }
+            if(itemsFacturaActual.length === 0) { alert('Agrega al menos un producto'); return; }
             const total = itemsFacturaActual.reduce((acc, item) => acc + (item.cantidad * item.precio), 0);
             const tipo = document.getElementById('tipoDocumento').value;
             const cliente = document.getElementById('nombreCliente').value || 'Cliente General';
@@ -397,7 +402,7 @@
             renderFacturaItems();
         }
 
-        // Reportes de Inversión y Ganancias
+        // Reportes
         function actualizarReportes() {
             const inversion = inventario.reduce((acc, p) => acc + (p.costo || 0), 0);
             const gananciaDetal = inventario.reduce((acc, p) => acc + ((p.precio1 || 0) - (p.costo || 0)), 0);
@@ -419,7 +424,7 @@
             });
         }
 
-        // Logo Dinámico
+        // Logo
         document.getElementById('logoInput').addEventListener('change', function(e) {
             const reader = new FileReader();
             reader.onload = function(event) {
