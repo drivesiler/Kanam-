@@ -10,6 +10,7 @@
             header, 
             .no-print, 
             #buscadorProducto, 
+            #buscadorInventario,
             #listaSugerencias, 
             #logoInput,
             .btn-accion-tabla {
@@ -142,18 +143,18 @@
             </div>
         </section>
 
-        <!-- TAB: INVENTARIO (OPTIMIZADO Y RÁPIDO) -->
+        <!-- TAB: INVENTARIO (PROTEGIDO CON BUSCADOR) -->
         <section id="tab-inventario" class="hidden space-y-6 no-print">
             <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 p-4 bg-indigo-50 border border-indigo-100 rounded-lg gap-4">
                     <div>
                         <h2 class="text-lg font-bold text-indigo-900">Base de Datos de Inventario 🔒</h2>
                         <p class="text-sm font-bold text-indigo-700 mt-1">
-                            📦 Artículos distintos registrados: <span id="totalArticulosCount" class="text-lg font-black text-indigo-900 bg-indigo-200 px-3 py-1 rounded-full">0</span>
+                            📦 Artículos registrados en catálogo: <span id="totalArticulosCount" class="text-lg font-black text-indigo-900 bg-indigo-200 px-3 py-1 rounded-full">0</span>
                         </p>
                     </div>
                     <button onclick="cargarBaseDatos(true)" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-4 py-2 rounded transition shadow flex items-center gap-2">
-                        🔄 Recargar catalogo.csv
+                        🔄 Recargar catalogo.csv de GitHub
                     </button>
                 </div>
 
@@ -183,6 +184,12 @@
                         <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-medium transition">Guardar Producto</button>
                     </div>
                 </form>
+
+                <!-- Cuadro de búsqueda para el Inventario -->
+                <div class="mb-4">
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Filtrar Inventario</label>
+                    <input type="text" id="buscadorInventario" placeholder="Buscar por nombre o categoría en el inventario..." oninput="renderInventario()" class="w-full border rounded-lg px-4 py-2 text-sm shadow-inner focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
 
                 <div class="overflow-x-auto max-h-96 overflow-y-auto border rounded">
                     <table class="w-full text-left border-collapse">
@@ -256,7 +263,6 @@
             }
         }
 
-        // Carga ultrarrápida directa desde catalogo.csv
         async function cargarBaseDatos(forzar = false) {
             try {
                 const response = await fetch('catalogo.csv?v=' + Date.now());
@@ -270,8 +276,8 @@
                         const cols = linea.split(',');
                         if (cols.length >= 4) {
                             tempInventario.push({
-                                nombre: cols[0] ? cols[0].trim() : 'Perfume',
-                                categoria: cols[1] ? cols[1].trim() : 'General',
+                                nombre: cols[0] ? cols[0].trim().replace(/^"|"$/g, '') : 'Perfume',
+                                categoria: cols[1] ? cols[1].trim().replace(/^"|"$/g, '') : 'General',
                                 costo: parseFloat(cols[2]) || 0,
                                 precio1: parseFloat(cols[3]) || 0,
                                 precio2: parseFloat(cols[4]) || 0
@@ -280,8 +286,9 @@
                     }
                     if (tempInventario.length > 0) {
                         inventario = tempInventario;
+                        localStorage.removeItem('perf_inventario');
                         renderInventario();
-                        if (forzar) alert(`¡Catálogo sincronizado! Artículos listos: ${inventario.length}`);
+                        if (forzar) alert(`¡Catálogo sincronizado perfectamente! Total de artículos: ${inventario.length}`);
                     }
                 }
             } catch (error) {
@@ -289,7 +296,6 @@
             }
         }
 
-        // Carga al iniciar la página
         cargarBaseDatos();
 
         function cambiarTab(tab) {
@@ -309,17 +315,17 @@
 
         function guardarProducto(e) {
             e.preventDefault();
-            const idx = document.getElementById('indiceEditando').value;
+            const idx = parseInt(document.getElementById('indiceEditando').value);
             const producto = {
-                nombre: document.getElementById('invNombre').value,
-                categoria: document.getElementById('invCategoria').value,
-                costo: parseFloat(document.getElementById('invCosto').value),
-                precio1: parseFloat(document.getElementById('invPrecio1').value),
-                precio2: parseFloat(document.getElementById('invPrecio2').value)
+                nombre: document.getElementById('invNombre').value.trim(),
+                categoria: document.getElementById('invCategoria').value.trim(),
+                costo: parseFloat(document.getElementById('invCosto').value) || 0,
+                precio1: parseFloat(document.getElementById('invPrecio1').value) || 0,
+                precio2: parseFloat(document.getElementById('invPrecio2').value) || 0
             };
 
-            if(idx == -1) {
-                inventario.unshift(producto); // Agrega al inicio para verlo rápido
+            if(idx === -1) {
+                inventario.unshift(producto);
             } else {
                 inventario[idx] = producto;
                 document.getElementById('indiceEditando').value = -1;
@@ -327,22 +333,25 @@
 
             document.getElementById('formProducto').reset();
             renderInventario();
-            alert('Producto guardado temporalmente en la sesión actual.');
+            alert('Producto guardado e inventario actualizado.');
         }
 
         function renderInventario() {
             const tbody = document.getElementById('tablaInventario');
             const lblCount = document.getElementById('totalArticulosCount');
+            const filtro = document.getElementById('buscadorInventario') ? document.getElementById('buscadorInventario').value.toLowerCase() : '';
             
-            const unicos = new Set(inventario.map(p => p.nombre.trim().toLowerCase())).size;
-            if (lblCount) lblCount.innerText = unicos;
-            
+            if (lblCount) lblCount.innerText = inventario.length;
             if (!tbody) return;
 
-            // Renderizado optimizado con fragmento para máxima velocidad
+            // Filtrar productos según el texto ingresado en el buscador de inventario
+            const inventarioFiltrado = inventario.map((p, originalIndex) => ({ p, originalIndex })).filter(({ p }) => 
+                p.nombre.toLowerCase().includes(filtro) || p.categoria.toLowerCase().includes(filtro)
+            );
+
             let html = '';
-            for(let i = 0; i < inventario.length; i++) {
-                const p = inventario[i];
+            for(let i = 0; i < inventarioFiltrado.length; i++) {
+                const { p, originalIndex } = inventarioFiltrado[i];
                 html += `
                     <tr class="border-b hover:bg-gray-50">
                         <td class="p-3 font-medium">${p.nombre}</td>
@@ -351,8 +360,8 @@
                         <td class="p-3 font-semibold text-green-700">$${p.precio1.toFixed(2)}</td>
                         <td class="p-3 font-semibold text-indigo-700">$${p.precio2.toFixed(2)}</td>
                         <td class="p-3 text-center">
-                            <button onclick="editarProducto(${i})" class="text-indigo-600 hover:underline mr-2 font-bold">Editar</button>
-                            <button onclick="eliminarProducto(${i})" class="text-red-600 hover:underline font-bold">Eliminar</button>
+                            <button type="button" onclick="editarProducto(${originalIndex})" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-800 px-2 py-1 rounded font-bold text-xs mr-1">Editar</button>
+                            <button type="button" onclick="eliminarProducto(${originalIndex})" class="bg-red-100 hover:bg-red-200 text-red-800 px-2 py-1 rounded font-bold text-xs">Eliminar</button>
                         </td>
                     </tr>`;
             }
@@ -361,17 +370,22 @@
 
         function editarProducto(i) {
             const p = inventario[i];
+            if (!p) return;
             document.getElementById('invNombre').value = p.nombre;
             document.getElementById('invCategoria').value = p.categoria;
             document.getElementById('invCosto').value = p.costo;
             document.getElementById('invPrecio1').value = p.precio1;
             document.getElementById('invPrecio2').value = p.precio2;
             document.getElementById('indiceEditando').value = i;
+            
+            document.getElementById('formProducto').scrollIntoView({ behavior: 'smooth' });
         }
 
         function eliminarProducto(i) {
-            inventario.splice(i, 1);
-            renderInventario();
+            if (confirm(`¿Seguro que deseas eliminar "${inventario[i].nombre}"?`)) {
+                inventario.splice(i, 1);
+                renderInventario();
+            }
         }
 
         function filtrarProductos() {
@@ -379,12 +393,13 @@
             const div = document.getElementById('listaSugerencias');
             if(!q) { div.classList.add('hidden'); return; }
             
-            const filtrados = inventario.filter(p => p.nombre.toLowerCase().includes(q) || p.categoria.toLowerCase().includes(q)).slice(0, 25); // Limita a 25 resultados para velocidad extrema
+            const filtrados = inventario.filter(p => p.nombre.toLowerCase().includes(q) || p.categoria.toLowerCase().includes(q)).slice(0, 25);
             if(filtrados.length === 0) { div.classList.add('hidden'); return; }
 
             div.innerHTML = '';
             filtrados.forEach(p => {
-                div.innerHTML += `<div onclick='agregarItemFactura(${JSON.stringify(p)})' class="p-2 hover:bg-indigo-50 cursor-pointer text-sm border-b flex justify-between">
+                const pEscaped = JSON.stringify(p).replace(/'/g, "&apos;");
+                div.innerHTML += `<div onclick='agregarItemFactura(${pEscaped})' class="p-2 hover:bg-indigo-50 cursor-pointer text-sm border-b flex justify-between">
                     <span>${p.nombre} <span class="text-gray-400">(${p.categoria})</span></span>
                     <span class="font-bold text-indigo-600">$${p.precio1.toFixed(2)} / $${p.precio2.toFixed(2)}</span>
                 </div>`;
